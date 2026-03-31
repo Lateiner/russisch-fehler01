@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Sätze verbinden</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 850px;
+            position: relative;
+        }
+
+        h2 { text-align: center; color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .matching-area {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            gap: 50px;
+            margin-bottom: 20px;
+            min-height: 480px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+            z-index: 2;
+        }
+
+        .item {
+            padding: 12px 15px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            user-select: none;
+        }
+
+        .item:hover { border-color: var(--accent-color); }
+
+        .item.selected {
+            border-color: var(--accent-color);
+            background-color: #ebf5fb;
+        }
+
+        /* Wenn ein Paar im Spiel gefunden wurde */
+        .item.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: #bbb;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .left-col .dot { right: -30px; }
+        .right-col .dot { left: -30px; }
+
+        /* SVG Overlay für Linien */
+        #svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .line {
+            fill: none;
+            stroke-width: 3;
+            stroke: var(--accent-color);
+            stroke-linecap: round;
+            transition: opacity 0.3s;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .solution-btn { background-color: #f39c12; }
+        .restart-btn { background-color: var(--primary-color); }
+
+        #feedback {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .matching-area { gap: 25px; min-height: 520px; }
+            .item { font-size: 0.85rem; padding: 10px; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="game-container">
+    <h2>Satz-Verbindungen</h2>
+    <div class="instruction">
+        Verbinde Anfang und Ende. Korrekte Sätze verschwinden vom Feld.
+    </div>
+
+    <div class="matching-area">
+        <svg id="svg-canvas"></svg>
+        <div class="column left-col" id="left-column"></div>
+        <div class="column right-col" id="right-column"></div>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="controls">
+        <button class="solution-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="restart-btn" onclick="initGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const pairs = [
+        { id: 0, start: "Я хочу,", end: "чтобы ты пришёл.", color: "#FFD1DC" },
+        { id: 1, start: "Это зависит", end: "от погоды.", color: "#D1FFD1" },
+        { id: 2, start: "Я не знаю,", end: "тепло ли сегодня.", color: "#D1D1FF" },
+        { id: 3, start: "Он любит", end: "свою жену.", color: "#FFFED1" },
+        { id: 4, start: "На улице", end: "сегодня ветрено.", color: "#FFD1FF" },
+        { id: 5, start: "Я занимаюсь", end: "спортом.", color: "#D1FFFF" },
+        { id: 6, start: "Можно задать", end: "вопрос?", color: "#FFE4D1" },
+        { id: 7, start: "Я ем суп", end: "ложкой.", color: "#E4D1FF" }
+    ];
+
+    let selectedLeft = null;
+    let foundMatches = [];
+    let isSolutionMode = false;
+
+    function initGame() {
+        isSolutionMode = false;
+        const leftCol = document.getElementById('left-column');
+        const rightCol = document.getElementById('right-column');
+        leftCol.innerHTML = '';
+        rightCol.innerHTML = '';
+        foundMatches = [];
+        selectedLeft = null;
+        document.getElementById('feedback').textContent = "";
+        clearCanvas();
+
+        const shuffledLeft = [...pairs].sort(() => Math.random() - 0.5);
+        const shuffledRight = [...pairs].sort(() => Math.random() - 0.5);
+
+        shuffledLeft.forEach(p => leftCol.appendChild(createItem(p.start, p.id, 'left')));
+        shuffledRight.forEach(p => rightCol.appendChild(createItem(p.end, p.id, 'right')));
+
+        window.addEventListener('resize', updateLines);
+    }
+
+    function createItem(text, id, side) {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = text;
+        div.dataset.id = id;
+        div.dataset.side = side;
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        div.appendChild(dot);
+        div.onclick = () => handleSelect(div);
+        return div;
+    }
+
+    function handleSelect(element) {
+        if (isSolutionMode || element.classList.contains('hidden')) return;
+
+        if (element.dataset.side === 'left') {
+            if (selectedLeft) selectedLeft.classList.remove('selected');
+            selectedLeft = element;
+            element.classList.add('selected');
+        } else {
+            if (!selectedLeft) return;
+
+            if (selectedLeft.dataset.id === element.dataset.id) {
+                // Richtig verbunden
+                const leftEl = selectedLeft;
+                const rightEl = element;
+                
+                leftEl.classList.remove('selected');
+                leftEl.style.borderColor = "var(--success-color)";
+                rightEl.style.borderColor = "var(--success-color)";
+
+                foundMatches.push({ left: leftEl, right: rightEl, color: "var(--success-color)" });
+                updateLines();
+
+                setTimeout(() => {
+                    if (!isSolutionMode) {
+                        leftEl.classList.add('hidden');
+                        rightEl.classList.add('hidden');
+                        updateLines();
+                    }
+                }, 600);
+
+                selectedLeft = null;
+                if (document.querySelectorAll('.item:not(.hidden)').length === 0) {
+                    document.getElementById('feedback').textContent = "Hervorragend! Alle Sätze wurden korrekt verbunden.";
+                }
+            } else {
+                // Falsch verbunden
+                element.style.borderColor = "var(--error-color)";
+                setTimeout(() => element.style.borderColor = "#ddd", 500);
+            }
+        }
+    }
+
+    function showSolution() {
+        isSolutionMode = true;
+        clearCanvas();
+        document.getElementById('feedback').textContent = "Lösung: Paare mit der gleichen Hintergrundfarbe gehören zusammen.";
+        
+        const allItems = document.querySelectorAll('.item');
+        allItems.forEach(item => {
+            item.classList.remove('hidden', 'selected');
+            const pairData = pairs.find(p => p.id == item.dataset.id);
+            item.style.backgroundColor = pairData.color;
+            item.style.borderColor = "#bbb";
+        });
+
+        // Zeichne Linien für die Lösung
+        foundMatches = [];
+        const leftItems = document.querySelectorAll('.left-col .item');
+        const rightItems = document.querySelectorAll('.right-col .item');
+
+        pairs.forEach(p => {
+            const l = Array.from(leftItems).find(i => i.dataset.id == p.id);
+            const r = Array.from(rightItems).find(i => i.dataset.id == p.id);
+            foundMatches.push({ left: l, right: r, color: "#999" });
+        });
+        updateLines();
+    }
+
+    function clearCanvas() {
+        document.getElementById('svg-canvas').innerHTML = '';
+    }
+
+    function updateLines() {
+        const svg = document.getElementById('svg-canvas');
+        svg.innerHTML = '';
+        const containerRect = document.getElementById('game-container').getBoundingClientRect();
+
+        foundMatches.forEach(match => {
+            if (!isSolutionMode && match.left.classList.contains('hidden')) return;
+
+            const lDot = match.left.querySelector('.dot').getBoundingClientRect();
+            const rDot = match.right.querySelector('.dot').getBoundingClientRect();
+
+            const x1 = lDot.left + lDot.width / 2 - containerRect.left;
+            const y1 = lDot.top + lDot.height / 2 - containerRect.top;
+            const x2 = rDot.left + rDot.width / 2 - containerRect.left;
+            const y2 = rDot.top + rDot.height / 2 - containerRect.top;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const cp = x1 + (x2 - x1) / 2;
+            path.setAttribute("d", `M ${x1} ${y1} C ${cp} ${y1}, ${cp} ${y2}, ${x2} ${y2}`);
+            path.setAttribute("class", "line");
+            path.setAttribute("stroke", match.color);
+            svg.appendChild(path);
+        });
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
