@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Direkt-Sortierung</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-zanimatsya: #8e44ad;
+            --accent-delat: #2980b9;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h2 { text-align: center; color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1rem;
+            border-left: 5px solid var(--accent-delat);
+        }
+
+        .pool-label { font-weight: bold; margin-bottom: 8px; display: block; color: #555; }
+        
+        .word-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            background: #fff;
+            border: 2px solid #eee;
+            padding: 15px;
+            border-radius: 10px;
+            min-height: 60px;
+            margin-bottom: 25px;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .category-box {
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            padding: 10px;
+            min-height: 250px;
+            background: #fafafa;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+
+        /* Hover-Effekt wenn ein Wort ausgewählt ist */
+        .category-box.can-drop {
+            border-color: var(--accent-delat);
+            background: #eef7ff;
+        }
+
+        .category-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .zanimatsya-title { color: var(--accent-zanimatsya); }
+        .delat-title { color: var(--accent-delat); }
+
+        .tile {
+            background: white;
+            border: 2px solid var(--primary-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            user-select: none;
+            transition: all 0.2s;
+            display: inline-block;
+            margin: 4px;
+        }
+
+        .tile.selected {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Feedback-Farben */
+        .tile.correct {
+            border-color: var(--success-color);
+            background-color: #e8f5e9;
+            color: var(--success-color);
+            cursor: default;
+        }
+
+        .tile.wrong {
+            border-color: var(--error-color);
+            background-color: #ffebee;
+            color: var(--error-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .reset-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback-text {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .categories-grid { grid-template-columns: 1fr; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Wort-Sortierung</h2>
+    <div class="instruction">
+        Wähle ein Wort aus und klicke dann auf das passende Verb, um es einzusortieren.
+    </div>
+
+    <span class="pool-label">Wort-Pool:</span>
+    <div id="word-pool" class="word-pool"></div>
+
+    <div class="categories-grid">
+        <div id="cat-zanimatsya" class="category-box" onclick="placeWord('zanimatsya')">
+            <div class="category-title zanimatsya-title">заниматься (+ Instr.)</div>
+            <div id="list-zanimatsya"></div>
+        </div>
+
+        <div id="cat-delat" class="category-box" onclick="placeWord('delat')">
+            <div class="category-title delat-title">делать (+ Akk.)</div>
+            <div id="list-delat"></div>
+        </div>
+    </div>
+
+    <div id="feedback-text"></div>
+
+    <div class="controls">
+        <button class="solution-btn" onclick="showSolution()">Lösung zeigen</button>
+        <button class="reset-btn" onclick="resetGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const wordsData = [
+        { t: "йогой", c: "zanimatsya" },
+        { t: "спортом", c: "zanimatsya" },
+        { t: "бизнесом", c: "zanimatsya" },
+        { t: "музыкой", c: "zanimatsya" },
+        { t: "русским языком", c: "zanimatsya" },
+        { t: "домашнее задание", c: "delat" },
+        { t: "упражнение", c: "delat" },
+        { t: "ошибки", c: "delat" },
+        { t: "завтрак", c: "delat" },
+        { t: "курс", c: "delat" }
+    ];
+
+    let selectedTile = null;
+
+    function init() {
+        const pool = document.getElementById('word-pool');
+        pool.innerHTML = '';
+        document.getElementById('list-zanimatsya').innerHTML = '';
+        document.getElementById('list-delat').innerHTML = '';
+        document.getElementById('feedback-text').textContent = '';
+        selectedTile = null;
+
+        const shuffled = [...wordsData].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(item => {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.textContent = item.t;
+            tile.dataset.correct = item.c;
+            tile.onclick = (e) => {
+                e.stopPropagation();
+                selectTile(tile);
+            };
+            pool.appendChild(tile);
+        });
+    }
+
+    function selectTile(tile) {
+        if (tile.classList.contains('correct')) return; // Bereits richtig einsortierte nicht mehr wählen
+
+        if (selectedTile) selectedTile.classList.remove('selected');
+        selectedTile = tile;
+        tile.classList.add('selected');
+        
+        // Optische Hilfe: Zielboxen markieren
+        document.querySelectorAll('.category-box').forEach(box => box.classList.add('can-drop'));
+    }
+
+    function placeWord(category) {
+        if (!selectedTile) return;
+
+        const correctCat = selectedTile.dataset.correct;
+        const targetList = document.getElementById('list-' + category);
+        const feedback = document.getElementById('feedback-text');
+
+        // Wort verschieben
+        targetList.appendChild(selectedTile);
+        selectedTile.classList.remove('selected');
+
+        // Sofort-Feedback
+        if (category === correctCat) {
+            selectedTile.classList.add('correct');
+            selectedTile.classList.remove('wrong');
+            feedback.textContent = "Richtig!";
+            feedback.style.color = "var(--success-color)";
+        } else {
+            selectedTile.classList.add('wrong');
+            feedback.textContent = "Leider falsch einsortiert.";
+            feedback.style.color = "var(--error-color)";
+        }
+
+        selectedTile = null;
+        document.querySelectorAll('.category-box').forEach(box => box.classList.remove('can-drop'));
+    }
+
+    function showSolution() {
+        const tiles = document.querySelectorAll('.tile');
+        const feedback = document.getElementById('feedback-text');
+        
+        tiles.forEach(tile => {
+            if (!tile.classList.contains('correct')) {
+                const correctCat = tile.dataset.correct;
+                document.getElementById('list-' + correctCat).appendChild(tile);
+                tile.className = 'tile correct';
+            }
+        });
+        feedback.textContent = "Alle Wörter wurden korrekt zugeordnet.";
+        feedback.style.color = "var(--warning-color)";
+    }
+
+    function resetGame() {
+        if(confirm("Alles zurücksetzen?")) init();
+    }
+
+    init();
+</script>
+
+</body>
+</html>
