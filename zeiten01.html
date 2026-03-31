@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: 10 Sätze Zeitformen nach "чтобы"</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction-box {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .translation { font-style: normal; color: #555; font-size: 1rem; }
+
+        .sentence-box {
+            font-size: 1.4rem;
+            margin: 30px 0;
+            line-height: 1.8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .gap {
+            display: inline-block;
+            min-width: 130px;
+            height: 35px;
+            border-bottom: 3px solid var(--accent-color);
+            background-color: #f0f8ff;
+            font-weight: bold;
+            color: var(--accent-color);
+            transition: all 0.2s;
+        }
+
+        .gap.correct { color: var(--success-color); border-bottom-color: var(--success-color); background-color: #e8f5e9; }
+        .gap.wrong { color: var(--error-color); border-bottom-color: var(--error-color); background-color: #ffebee; }
+        .gap.solved { color: var(--warning-color); border-bottom-color: var(--warning-color); background-color: #fff3e0; }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .option-tile {
+            background: white;
+            border: 2px solid var(--primary-color);
+            padding: 12px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+        }
+
+        .option-tile:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-bottom: 15px;
+            font-weight: bold;
+            min-height: 2.8rem;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .options-container { grid-template-columns: 1fr; }
+            button { width: 100%; }
+            .sentence-box { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Satz 1 von 10</div>
+    <h2>Zeitformen nach „чтобы“</h2>
+    
+    <div class="instruction-box">
+        <span class="translation" id="translation"></span>
+    </div>
+
+    <div id="sentence-box" class="sentence-box"></div>
+
+    <div id="feedback"></div>
+
+    <div id="options-container" class="options-container"></div>
+
+    <div class="controls">
+        <button class="solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="next-btn" id="next-btn" onclick="nextLevel()">Weiter</button>
+        <button class="restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            b: "Я хочу, чтобы он", a: "вовремя.", ans: "пришёл",
+            opts: ["придёт", "приходит", "пришёл", "пришли"],
+            t: "Ich möchte, dass er pünktlich kommt.",
+            expl: "Er (он) ist männlich Singular. Wir brauchen das Präteritum: пришёл."
+        },
+        {
+            b: "Я хочу, чтобы она", a: "эту книгу.", ans: "прочитала",
+            opts: ["прочитает", "прочитала", "прочитали", "читает"],
+            t: "Ich möchte, dass sie dieses Buch liest.",
+            expl: "Sie (она) ist weiblich. Die Endung im Präteritum ist -ла."
+        },
+        {
+            b: "Мама хочет, чтобы дети", a: "сейчас.", ans: "поспали",
+            opts: ["поспят", "поспала", "спят", "поспали"],
+            t: "Mama möchte, dass die Kinder jetzt schlafen.",
+            expl: "Kinder (дети) ist Plural. Die Endung im Präteritum ist -ли."
+        },
+        {
+            b: "Я хочу, чтобы ты (f.)", a: "мне завтра.", ans: "позвонила",
+            opts: ["позвонишь", "позвонила", "позвонил", "позвонят"],
+            t: "Ich möchte, dass du (w.) mich morgen anrufst.",
+            expl: "Bei einer Frau nutzen wir auch für 'du' die feminine Form: позвонила."
+        },
+        {
+            b: "Учитель хочет, чтобы мы", a: "упражнение.", ans: "сделали",
+            opts: ["сделаем", "сделали", "сделала", "делают"],
+            t: "Der Lehrer möchte, dass wir die Übung machen.",
+            expl: "Wir (мы) ist Plural. Daher nutzen wir 'сделали'."
+        },
+        {
+            b: "Я хочу, чтобы ты (m.)", a: "эту работу.", ans: "закончил",
+            opts: ["закончишь", "закончит", "закончил", "закончили"],
+            t: "Ich möchte, dass du (m.) diese Arbeit beendest.",
+            expl: "Du (männlich) erfordert die maskuline Vergangenheitsform: закончил."
+        },
+        {
+            b: "Я хочу, чтобы Иван", a: "эту машину.", ans: "купил",
+            opts: ["купит", "покупает", "купил", "купили"],
+            t: "Ich möchte, dass Ivan dieses Auto kauft.",
+            expl: "Ivan ist ein Eigenname (maskulin). Daher nutzen wir 'купил'."
+        },
+        {
+            b: "Я хочу, чтобы подруга", a: "в воскресенье.", ans: "приехала",
+            opts: ["приедет", "приехала", "приехал", "приедут"],
+            t: "Ich möchte, dass die Freundin am Sonntag kommt.",
+            expl: "Freundin (подруга) ist weiblich. Die Endung ist -ла."
+        },
+        {
+            b: "Я хочу, чтобы родители", a: "в отпуске.", ans: "отдохнули",
+            opts: ["отдохнут", "отдыхает", "отдохнули", "отдохнула"],
+            t: "Ich möchte, dass die Eltern im Urlaub ausruhen.",
+            expl: "Eltern (родители) ist Plural. Die Endung ist -ли."
+        },
+        {
+            b: "Я хочу, чтобы Анна", a: "письмо.", ans: "написала",
+            opts: ["напишет", "написала", "написал", "пишут"],
+            t: "Ich möchte, dass Anna den Brief schreibt.",
+            expl: "Anna ist weiblich. Daher nutzen wir die Form 'написала'."
+        }
+    ];
+
+    let currentQ = 0;
+    let locked = false;
+
+    function initLevel() {
+        const q = questions[currentQ];
+        const sentenceBox = document.getElementById('sentence-box');
+        const optionsContainer = document.getElementById('options-container');
+        const progressText = document.getElementById('progress');
+        const feedback = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const solBtn = document.getElementById('sol-btn');
+
+        locked = false;
+        feedback.textContent = "";
+        nextBtn.style.display = "none";
+        solBtn.style.display = "inline-block";
+        progressText.textContent = `Satz ${currentQ + 1} von ${questions.length}`;
+        document.getElementById('translation').textContent = `„${q.t}“`;
+
+        sentenceBox.innerHTML = `${q.b} <span id="gap" class="gap"></span> ${q.a}`;
+
+        optionsContainer.innerHTML = "";
+        const shuffledOptions = [...q.opts].sort(() => Math.random() - 0.5);
+        shuffledOptions.forEach(opt => {
+            const tile = document.createElement('div');
+            tile.className = 'option-tile';
+            tile.textContent = opt;
+            tile.onclick = () => checkAnswer(opt);
+            optionsContainer.appendChild(tile);
+        });
+    }
+
+    function checkAnswer(selected) {
+        if (locked) return;
+        const q = questions[currentQ];
+        const gap = document.getElementById('gap');
+        const feedback = document.getElementById('feedback');
+        locked = true;
+
+        gap.textContent = selected;
+
+        if (selected === q.ans) {
+            gap.className = "gap correct";
+            feedback.innerHTML = `<span style="color:var(--success-color)">Richtig!</span><br>${q.expl}`;
+        } else {
+            gap.className = "gap wrong";
+            feedback.innerHTML = `<span style="color:var(--error-color)">Falsch.</span><br>Nach 'чтобы' steht immer das Präteritum: ${q.ans}.`;
+        }
+        showNext();
+    }
+
+    function showSolution() {
+        if (locked) return;
+        const q = questions[currentQ];
+        const gap = document.getElementById('gap');
+        const feedback = document.getElementById('feedback');
+        locked = true;
+
+        gap.textContent = q.ans;
+        gap.className = "gap solved";
+        feedback.innerHTML = `<span style="color:var(--warning-color)">Lösung:</span><br>${q.expl}`;
+        showNext();
+    }
+
+    function showNext() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            initLevel();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend abgeschlossen!</h2>
+            <p>Du hast alle 10 Sätze bearbeitet und die Regel für <b>чтобы + Präteritum</b> verinnerlicht.</p>
+            <p>Wichtig: Das Verb richtet sich immer nach dem Subjekt des Nebensatzes.</p>
+            <button class="restart-btn" onclick="location.reload()">Neustart der Übung</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du die Übung neu starten?")) {
+            currentQ = 0;
+            initLevel();
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
