@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Satz-Baukasten mit Lösung</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+            --tile-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { margin: 0 0 10px 0; }
+
+        .instruction {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            background: #eef2f3;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .drop-zone, .word-pool {
+            min-height: 80px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone {
+            border-style: solid;
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .word-tile {
+            background-color: var(--tile-color);
+            border: 2px solid var(--primary-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .word-tile:hover {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.1s;
+        }
+
+        button:active { transform: scale(0.95); }
+
+        .check-btn { background-color: var(--success-color); color: white; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .reset-btn { background-color: #95a5a6; color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.6rem;
+        }
+
+        .correct { color: var(--success-color); }
+        .wrong { color: var(--error-color); }
+        .info { color: var(--warning-color); }
+
+        @media (max-width: 480px) {
+            .container { padding: 1rem; }
+            .word-tile { padding: 8px 12px; font-size: 0.95rem; }
+            button { width: 100%; } /* Buttons auf Handy untereinander */
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="game-container">
+    <div class="progress" id="progress">Satz 1 von 6</div>
+    <h2 id="title">Russisch-Trainer</h2>
+    <p class="instruction" id="instruction"></p>
+
+    <div id="drop-zone" class="drop-zone"></div>
+    <div id="word-pool" class="word-pool"></div>
+
+    <div class="controls">
+        <button class="reset-btn" onclick="clearSentence()">Leeren</button>
+        <button class="solution-btn" id="solution-btn" onclick="showSolution()">Lösung</button>
+        <button class="check-btn" id="check-btn" onclick="checkSentence()">Prüfen</button>
+        <button class="next-btn" id="next-btn" onclick="nextLevel()">Nächster Satz</button>
+        <button class="restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const levels = [
+        {
+            text: "Ich möchte, dass du kommst.",
+            correct: ["Я", "хочу", "чтобы", "ты", "пришёл"],
+            words: ["чтобы", "хочу", "пришёл", "Я", "ты"]
+        },
+        {
+            text: "Das hängt von meinem Kurs ab.",
+            correct: ["Это", "зависит", "от", "моего", "курса"],
+            words: ["курса", "зависит", "от", "Это", "моего"]
+        },
+        {
+            text: "Draußen ist es heute warm.",
+            correct: ["На", "улице", "сегодня", "тепло"],
+            words: ["тепло", "сегодня", "На", "улице"]
+        },
+        {
+            text: "Ich weiß nicht, ob er kommt.",
+            correct: ["Я", "не", "знаю", "придёт", "ли", "он"],
+            words: ["ли", "знаю", "он", "Я", "придёт", "не"]
+        },
+        {
+            text: "Er liebt seine (eigene) Frau.",
+            correct: ["Он", "любит", "свою", "жену"],
+            words: ["жену", "любит", "свою", "Он"]
+        },
+        {
+            text: "Ich liebe es, Sport zu treiben.",
+            correct: ["Я", "люблю", "заниматься", "спортом"],
+            words: ["спортом", "заниматься", "люблю", "Я"]
+        }
+    ];
+
+    let currentLevel = 0;
+
+    const dropZone = document.getElementById('drop-zone');
+    const wordPool = document.getElementById('word-pool');
+    const feedback = document.getElementById('feedback');
+    const instruction = document.getElementById('instruction');
+    const progressText = document.getElementById('progress');
+    const nextBtn = document.getElementById('next-btn');
+    const checkBtn = document.getElementById('check-btn');
+    const solutionBtn = document.getElementById('solution-btn');
+
+    function initLevel() {
+        const level = levels[currentLevel];
+        instruction.innerHTML = `Bilde den Satz: <br><strong>„${level.text}“</strong>`;
+        progressText.textContent = `Satz ${currentLevel + 1} von ${levels.length}`;
+        
+        dropZone.innerHTML = '';
+        wordPool.innerHTML = '';
+        feedback.textContent = '';
+        nextBtn.style.display = 'none';
+        checkBtn.style.display = 'inline-block';
+        solutionBtn.style.display = 'inline-block';
+
+        const shuffled = [...level.words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach(word => {
+            const tile = createTile(word);
+            wordPool.appendChild(tile);
+        });
+    }
+
+    function createTile(word) {
+        const tile = document.createElement('div');
+        tile.className = 'word-tile';
+        tile.textContent = word;
+        tile.onclick = () => moveTile(tile);
+        return tile;
+    }
+
+    function moveTile(tile) {
+        feedback.textContent = '';
+        if (tile.parentElement.id === 'word-pool') {
+            dropZone.appendChild(tile);
+        } else {
+            wordPool.appendChild(tile);
+        }
+    }
+
+    function clearSentence() {
+        const tiles = Array.from(dropZone.children);
+        tiles.forEach(tile => wordPool.appendChild(tile));
+        feedback.textContent = '';
+    }
+
+    function checkSentence() {
+        const userWords = Array.from(dropZone.children).map(tile => tile.textContent);
+        const correctWords = levels[currentLevel].correct;
+
+        if (userWords.length < correctWords.length) {
+            feedback.textContent = "Der Satz ist noch nicht vollständig!";
+            feedback.className = "wrong";
+            return;
+        }
+
+        const isCorrect = JSON.stringify(userWords) === JSON.stringify(correctWords);
+
+        if (isCorrect) {
+            feedback.textContent = "Richtig! Gut gemacht.";
+            feedback.className = "correct";
+            showNextControls();
+        } else {
+            feedback.textContent = "Leider falsch. Prüfe die Reihenfolge!";
+            feedback.className = "wrong";
+        }
+    }
+
+    function showSolution() {
+        dropZone.innerHTML = '';
+        wordPool.innerHTML = '';
+        const correctWords = levels[currentLevel].correct;
+        
+        correctWords.forEach(word => {
+            const tile = createTile(word);
+            dropZone.appendChild(tile);
+        });
+
+        feedback.textContent = "Hier ist die richtige Lösung.";
+        feedback.className = "info";
+        showNextControls();
+    }
+
+    function showNextControls() {
+        checkBtn.style.display = 'none';
+        solutionBtn.style.display = 'none';
+        nextBtn.style.display = 'inline-block';
+        if (currentLevel === levels.length - 1) {
+            nextBtn.textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentLevel < levels.length - 1) {
+            currentLevel++;
+            initLevel();
+        } else {
+            showFinalScore();
+        }
+    }
+
+    function showFinalScore() {
+        document.getElementById('game-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle Übungen abgeschlossen.</p>
+            <button class="restart-btn" onclick="location.reload()">Zurück zum Start</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Den gesamten Fortschritt löschen und neu starten?")) {
+            currentLevel = 0;
+            initLevel();
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
