@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Fehler-Finder</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { margin-top: 0; color: var(--primary-color); }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+        }
+
+        /* Satz-Display */
+        .sentence-display {
+            font-size: 1.5rem;
+            line-height: 2.5;
+            margin: 30px 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .word-hotspot {
+            padding: 5px 12px;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #f9f9f9;
+            user-select: none;
+        }
+
+        .word-hotspot:hover {
+            border-color: var(--accent-color);
+            background-color: #ecf0f1;
+        }
+
+        /* Zustände */
+        .word-hotspot.found {
+            background-color: var(--error-color);
+            color: white;
+            text-decoration: line-through;
+            border-color: var(--error-color);
+        }
+
+        .word-hotspot.correct-marked {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 3rem;
+            padding: 10px;
+        }
+
+        @media (max-width: 480px) {
+            .sentence-display { font-size: 1.2rem; }
+            .container { padding: 1rem; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <h2>Fehler-Finder</h2>
+    <div class="instruction">
+        Klicke auf das <strong>falsche</strong> oder <strong>überflüssige</strong> Wort im Satz.
+    </div>
+
+    <div id="sentence-display" class="sentence-display">
+        <!-- Wörter werden hier generiert -->
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="controls">
+        <button class="solution-btn" id="solution-btn" onclick="showSolution()">Lösung zeigen</button>
+        <button class="next-btn" id="next-btn" onclick="nextLevel()">Nächste Aufgabe</button>
+        <button class="restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        {
+            text: "Я хочу что ты пришёл.",
+            wrongIndex: 2, // "что"
+            correct: "Я хочу чтобы ты пришёл.",
+            explanation: "Bei Wünschen verwendet man 'чтобы' statt 'что'."
+        },
+        {
+            text: "Я хочу чтобы ты придёшь.",
+            wrongIndex: 3, // "придёшь"
+            correct: "Я хочу чтобы ты пришёл.",
+            explanation: "Nach 'чтобы' muss die Vergangenheitsform stehen, auch wenn es um die Zukunft geht."
+        },
+        {
+            text: "Это зависит моё настроение.",
+            wrongIndex: 2, // "моё"
+            correct: "Это зависит от моего настроения.",
+            explanation: "Nach 'зависит' fehlt die Präposition 'от' (und der Genitiv)."
+        },
+        {
+            text: "Он любит его жену.",
+            wrongIndex: 2, // "его"
+            correct: "Он любит свою жену.",
+            explanation: "Wenn man die eigene Frau meint, nutzt man 'свою'. 'его' bedeutet die Frau eines anderen."
+        },
+        {
+            text: "Я не знаю если сегодня тепло.",
+            wrongIndex: 3, // "если"
+            correct: "Я не знаю, тепло ли сегодня.",
+            explanation: "Für indirekte Fragen (ob) nutzt man 'ли', nicht 'если'."
+        },
+        {
+            text: "Это тепло на улице.",
+            wrongIndex: 0, // "Это"
+            correct: "На улице тепло.",
+            explanation: "Bei Wetterbeschreibungen ist das Wort 'это' überflüssig."
+        },
+        {
+            text: "Я люблю делать спорт.",
+            wrongIndex: 2, // "делать"
+            correct: "Я люблю заниматься спортом.",
+            explanation: "Man sagt 'заниматься спортом', nicht 'делать спорт'."
+        },
+        {
+            text: "Можно спросить вопрос?",
+            wrongIndex: 2, // "вопрос"
+            correct: "Можно задать вопрос?",
+            explanation: "Man kann 'спросить' (fragen) oder 'задать вопрос' (eine Frage stellen), aber nicht mischen."
+        },
+        {
+            text: "Я ем суп с ложкой.",
+            wrongIndex: 3, // "с"
+            correct: "Я ем суп ложкой.",
+            explanation: "Bei Werkzeugen (Instrumental) nutzt man keine Präposition 'с'."
+        },
+        {
+            text: "У меня много одежды.",
+            wrongIndex: 2, // "одежды"
+            correct: "Mnogiye russkiye slova ne imeyut plurala.",
+            explanation: "Wörter wie 'одежда' oder 'еда' stehen immer im Singular."
+        }
+    ];
+
+    let currentLevel = 0;
+    let found = false;
+
+    const sentenceDisplay = document.getElementById('sentence-display');
+    const feedback = document.getElementById('feedback');
+    const progressText = document.getElementById('progress');
+    const nextBtn = document.getElementById('next-btn');
+    const solutionBtn = document.getElementById('solution-btn');
+
+    function initLevel() {
+        found = false;
+        const level = levels[currentLevel];
+        progressText.textContent = `Aufgabe ${currentLevel + 1} von ${levels.length}`;
+        feedback.textContent = "";
+        feedback.style.color = "inherit";
+        nextBtn.style.display = "none";
+        solutionBtn.style.display = "inline-block";
+        
+        sentenceDisplay.innerHTML = "";
+        const words = level.text.split(" ");
+        
+        words.forEach((word, index) => {
+            const span = document.createElement('span');
+            span.className = 'word-hotspot';
+            span.textContent = word;
+            span.onclick = () => checkWord(index, span);
+            sentenceDisplay.appendChild(span);
+        });
+    }
+
+    function checkWord(index, element) {
+        if (found) return;
+
+        if (index === levels[currentLevel].wrongIndex) {
+            element.className = 'word-hotspot found';
+            feedback.innerHTML = `<span style="color:var(--success-color)">Richtig!</span><br>${levels[currentLevel].explanation}`;
+            found = true;
+            showNextStep();
+        } else {
+            element.style.borderColor = "var(--error-color)";
+            setTimeout(() => {
+                if (!found) element.style.borderColor = "transparent";
+            }, 500);
+            feedback.textContent = "Nein, dieses Wort ist an dieser Stelle korrekt. Suche weiter!";
+            feedback.style.color = "var(--error-color)";
+        }
+    }
+
+    function showSolution() {
+        const children = sentenceDisplay.children;
+        const wrongIdx = levels[currentLevel].wrongIndex;
+        children[wrongIdx].className = 'word-hotspot found';
+        feedback.innerHTML = `<span style="color:var(--warning-color)">Lösung:</span><br>${levels[currentLevel].explanation}`;
+        found = true;
+        showNextStep();
+    }
+
+    function showNextStep() {
+        solutionBtn.style.display = "none";
+        nextBtn.style.display = "inline-block";
+        if (currentLevel === levels.length - 1) {
+            nextBtn.textContent = "Ergebnis zeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentLevel < levels.length - 1) {
+            currentLevel++;
+            initLevel();
+        } else {
+            showFinalScreen();
+        }
+    }
+
+    function showFinalScreen() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Super gemacht!</h2>
+            <p>Du hast alle 10 typischen Fehler im Russischen analysiert.</p>
+            <button class="restart-btn" onclick="location.reload()">Nochmal üben</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du von vorne beginnen?")) {
+            currentLevel = 0;
+            initLevel();
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
