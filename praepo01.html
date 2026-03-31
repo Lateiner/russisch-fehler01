@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: 10 Sätze Präpositionen</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction-box {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .translation { font-style: italic; color: #555; font-size: 1rem; }
+
+        .sentence-box {
+            font-size: 1.4rem;
+            margin: 30px 0;
+            line-height: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .gap {
+            display: inline-block;
+            min-width: 90px;
+            height: 35px;
+            border-bottom: 3px solid var(--accent-color);
+            background-color: #f0f8ff;
+            vertical-align: middle;
+            font-weight: bold;
+            color: var(--accent-color);
+            transition: all 0.2s;
+        }
+
+        .gap.correct { color: var(--success-color); border-bottom-color: var(--success-color); background-color: #e8f5e9; }
+        .gap.wrong { color: var(--error-color); border-bottom-color: var(--error-color); background-color: #ffebee; }
+        .gap.solved { color: var(--warning-color); border-bottom-color: var(--warning-color); background-color: #fff3e0; }
+
+        .tile-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            min-height: 100px;
+        }
+
+        .tile {
+            background: white;
+            border: 2px solid var(--primary-color);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .tile:hover { background-color: var(--accent-color); color: white; border-color: var(--accent-color); }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-bottom: 15px;
+            font-weight: bold;
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .sentence-box { font-size: 1.1rem; }
+            .tile { width: 45%; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <h2>Grammatik-Lücken</h2>
+    
+    <div class="instruction-box">
+        <span class="translation" id="translation"></span>
+    </div>
+
+    <div id="sentence-box" class="sentence-box"></div>
+
+    <div id="feedback"></div>
+
+    <div id="tile-container" class="tile-container"></div>
+
+    <div class="controls">
+        <button class="solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="next-btn" id="next-btn" onclick="nextQuestion()">Weiter</button>
+        <button class="restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { b: "Я хочу,", a: "ты пришёл.", ans: "чтобы", opts: ["что", "чтобы", "если", "ли"], t: "Ich möchte, dass du kommst." },
+        { b: "Это зависит", a: "погоды.", ans: "от", opts: ["от", "с", "из", "Ø"], t: "Das hängt vom Wetter ab." },
+        { b: "Я не знаю, тепло", a: "сегодня.", ans: "ли", opts: ["если", "ли", "когда", "что"], t: "Ich weiß nicht, ob es heute warm ist." },
+        { b: "Я пишу", a: "ручкой.", ans: "Ø", opts: ["с", "по", "Ø", "от"], t: "Ich schreibe mit dem Kuli." },
+        { b: "Я хочу,", a: "ты это прочитал.", ans: "чтобы", opts: ["что", "чтобы", "Ø", "если"], t: "Ich möchte, dass du das liest." },
+        { b: "Она придёт,", a: "будет время.", ans: "если", opts: ["ли", "если", "когда", "чтобы"], t: "Sie kommt, wenn (falls) sie Zeit hat." },
+        { b: "Это зависит", a: "твоего решения.", ans: "от", opts: ["с", "от", "у", "к"], t: "Das hängt von deiner Entscheidung ab." },
+        { b: "Я не знаю,", a: "он придёт.", ans: "ли", opts: ["если", "ли", "когда", "Ø"], t: "Ich weiß nicht, ob er kommt." },
+        { b: "Я ем суп", a: "ложкой.", ans: "Ø", opts: ["со", "с", "Ø", "от"], t: "Ich esse die Suppe mit dem Löffel." },
+        { b: "Я хочу,", a: "он позвонил.", ans: "чтобы", opts: ["чтобы", "что", "ли", "если"], t: "Ich möchte, dass er anruft." }
+    ];
+
+    let currentQ = 0;
+    let locked = false;
+
+    function initQuestion() {
+        const q = questions[currentQ];
+        const sentenceBox = document.getElementById('sentence-box');
+        const tileContainer = document.getElementById('tile-container');
+        const progressText = document.getElementById('progress');
+        const feedback = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const solBtn = document.getElementById('sol-btn');
+
+        locked = false;
+        feedback.textContent = "";
+        nextBtn.style.display = "none";
+        solBtn.style.display = "inline-block";
+        progressText.textContent = `Aufgabe ${currentQ + 1} von ${questions.length}`;
+
+        document.getElementById('translation').textContent = q.t;
+        sentenceBox.innerHTML = `${q.b} <span id="gap" class="gap"></span> ${q.a}`;
+
+        tileContainer.innerHTML = "";
+        const shuffledOptions = [...q.opts].sort(() => Math.random() - 0.5);
+        shuffledOptions.forEach(opt => {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.textContent = opt === "Ø" ? "--- (keine)" : opt;
+            tile.onclick = () => checkAnswer(opt);
+            tileContainer.appendChild(tile);
+        });
+    }
+
+    function checkAnswer(selected) {
+        if (locked) return;
+        const q = questions[currentQ];
+        const gap = document.getElementById('gap');
+        const feedback = document.getElementById('feedback');
+        locked = true;
+
+        gap.textContent = (selected === "Ø") ? "" : selected;
+
+        if (selected === q.ans) {
+            gap.className = "gap correct";
+            feedback.textContent = "Richtig!";
+            feedback.style.color = "var(--success-color)";
+        } else {
+            gap.className = "gap wrong";
+            feedback.innerHTML = `Falsch. Richtig wäre: <b>${q.ans === "Ø" ? "keine Präposition" : q.ans}</b>`;
+            feedback.style.color = "var(--error-color)";
+        }
+        showNext();
+    }
+
+    function showSolution() {
+        if (locked) return;
+        const q = questions[currentQ];
+        const gap = document.getElementById('gap');
+        const feedback = document.getElementById('feedback');
+        locked = true;
+
+        gap.textContent = (q.ans === "Ø") ? "" : q.ans;
+        gap.className = "gap solved";
+        feedback.textContent = "Lösung wurde angezeigt.";
+        feedback.style.color = "var(--warning-color)";
+        showNext();
+    }
+
+    function showNext() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            initQuestion();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle 10 Grammatik-Lücken bearbeitet.</p>
+            <p>Denk an die goldene Regel: Instrumente (Löffel, Stift) brauchen im Russischen <b>keine</b> Präposition!</p>
+            <button class="restart-btn" onclick="location.reload()">Nochmal von vorn</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du wirklich von vorn anfangen?")) {
+            currentLevel = 0;
+            initQuestion();
+        }
+    }
+
+    initQuestion();
+</script>
+
+</body>
+</html>
