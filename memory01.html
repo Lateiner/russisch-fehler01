@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Paare finden mit Lösung</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background-color: #fff;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px 5px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 50px;
+            user-select: none;
+        }
+
+        .card:hover { border-color: var(--accent-color); }
+
+        .card.selected {
+            border-color: var(--accent-color);
+            background-color: #ebf5fb;
+            transform: scale(1.05);
+        }
+
+        /* Wenn ein Paar im Spiel gefunden wurde */
+        .card.matched {
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card.wrong {
+            border-color: var(--error-color);
+            background-color: #fdedec;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.3s;
+        }
+
+        .restart-btn { background-color: var(--primary-color); color: white; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+
+        #feedback {
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .game-grid { grid-template-columns: 1fr 1fr; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-container">
+    <h2>Paare finden</h2>
+    <div class="instruction">Finde die passenden Ergänzungen aus dem Video.</div>
+
+    <div id="feedback"></div>
+
+    <div id="game-grid" class="game-grid"></div>
+
+    <div class="controls">
+        <button class="solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="restart-btn" onclick="initGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const pairs = [
+        { a: "сдавать", b: "экзамен" },
+        { a: "проходить", b: "курс" },
+        { a: "заниматься", b: "йогой" },
+        { a: "задавать", b: "вопрос" },
+        { a: "зависит", b: "от" },
+        { a: "хочу", b: "чтобы" },
+        { a: "много", b: "еды" },
+        { a: "писать", b: "ручкой" },
+        { a: "на улице", b: "тепло" },
+        { a: "свою", b: "жену" }
+    ];
+
+    // 10 Pastellfarben für die Lösung
+    const pairColors = [
+        "#FFD1DC", "#D1FFD1", "#D1D1FF", "#FFFED1", "#FFD1FF", 
+        "#D1FFFF", "#FFE4D1", "#E4D1FF", "#D1FFE4", "#F5F5DC"
+    ];
+
+    let firstCard = null;
+    let lockBoard = false;
+    let matchesFound = 0;
+
+    function initGame() {
+        const grid = document.getElementById('game-grid');
+        const feedback = document.getElementById('feedback');
+        const solBtn = document.getElementById('sol-btn');
+        grid.innerHTML = '';
+        feedback.textContent = '';
+        solBtn.style.display = 'inline-block';
+        firstCard = null;
+        lockBoard = false;
+        matchesFound = 0;
+
+        let allItems = [];
+        pairs.forEach((pair, index) => {
+            allItems.push({ text: pair.a, pairId: index });
+            allItems.push({ text: pair.b, pairId: index });
+        });
+
+        allItems.sort(() => Math.random() - 0.5);
+
+        allItems.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.textContent = item.text;
+            card.dataset.pairId = item.pairId;
+            card.onclick = () => handleCardClick(card);
+            grid.appendChild(card);
+        });
+    }
+
+    function handleCardClick(card) {
+        if (lockBoard || card.classList.contains('matched') || card.classList.contains('solved') || card === firstCard) return;
+
+        card.classList.add('selected');
+
+        if (!firstCard) {
+            firstCard = card;
+            return;
+        }
+        checkMatch(card);
+    }
+
+    function checkMatch(secondCard) {
+        if (firstCard.dataset.pairId === secondCard.dataset.pairId) {
+            lockBoard = true;
+            setTimeout(() => {
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                matchesFound++;
+                document.getElementById('feedback').textContent = "Richtig!";
+                document.getElementById('feedback').style.color = "var(--success-color)";
+                resetBoard();
+                if (matchesFound === pairs.length) showWinScreen();
+            }, 300);
+        } else {
+            lockBoard = true;
+            firstCard.classList.add('wrong');
+            secondCard.classList.add('wrong');
+            document.getElementById('feedback').textContent = "Passt nicht.";
+            document.getElementById('feedback').style.color = "var(--error-color)";
+            setTimeout(() => {
+                firstCard.classList.remove('selected', 'wrong');
+                secondCard.classList.remove('selected', 'wrong');
+                resetBoard();
+            }, 800);
+        }
+    }
+
+    function resetBoard() {
+        firstCard = null;
+        lockBoard = false;
+    }
+
+    function showSolution() {
+        lockBoard = true;
+        const cards = document.querySelectorAll('.card');
+        const feedback = document.getElementById('feedback');
+        const solBtn = document.getElementById('sol-btn');
+        
+        cards.forEach(card => {
+            const pId = parseInt(card.dataset.pairId);
+            card.style.visibility = 'visible'; // Versteckte Karten wieder zeigen
+            card.style.opacity = '1';
+            card.style.backgroundColor = pairColors[pId];
+            card.style.borderColor = pairColors[pId];
+            card.classList.add('solved');
+            card.classList.remove('selected', 'wrong', 'matched');
+        });
+
+        feedback.textContent = "Lösung: Paare gleicher Farbe gehören zusammen.";
+        feedback.style.color = "var(--warning-color)";
+        solBtn.style.display = 'none';
+    }
+
+    function showWinScreen() {
+        document.getElementById('feedback').textContent = "Hervorragend! Alle Paare gefunden.";
+        document.getElementById('sol-btn').style.display = 'none';
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
