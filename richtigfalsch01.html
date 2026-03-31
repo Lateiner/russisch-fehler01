@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Swipe-Quiz</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            margin-bottom: 10px;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-color);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        /* Karten-Stapel */
+        .card-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            perspective: 1000px;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            box-sizing: border-box;
+            cursor: grab;
+            transition: transform 0.1s linear;
+            touch-action: none;
+        }
+
+        .card:active { cursor: grabbing; }
+
+        .card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            pointer-events: none;
+        }
+
+        .card p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        /* Swipe-Indikatoren */
+        .stamp {
+            position: absolute;
+            top: 20px;
+            padding: 5px 15px;
+            border: 4px solid;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 2rem;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: rotate(-10deg);
+        }
+        .stamp-right { left: 20px; color: var(--success-color); border-color: var(--success-color); transform: rotate(-15deg); }
+        .stamp-left { right: 20px; color: var(--error-color); border-color: var(--error-color); transform: rotate(15deg); }
+
+        /* Buttons */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: white;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-wrong { background-color: var(--error-color); }
+        .btn-right { background-color: var(--success-color); }
+        .btn:hover { transform: scale(1.1); }
+
+        /* End-Screen */
+        #final-screen {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .instruction {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="game-area">
+        <div class="header">
+            <p class="instruction">Rechts swipen = Richtig | Links = Falsch</p>
+            <div class="progress-bar"><div id="progress-fill"></div></div>
+            <p id="counter">1 / 10</p>
+        </div>
+
+        <div class="card-container" id="card-stack">
+            <!-- Die Karte wird per JS geladen -->
+            <div id="active-card" class="card">
+                <div id="stamp-correct" class="stamp stamp-right">RICHTIG</div>
+                <div id="stamp-wrong" class="stamp stamp-left">FALSCH</div>
+                <h2 id="sentence-text">Lade...</h2>
+                <p id="translation-text">...</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-wrong" onclick="swipe('left')">✘</button>
+            <button class="btn btn-right" onclick="swipe('right')">✔</button>
+        </div>
+    </div>
+
+    <div id="final-screen">
+        <h2>Ergebnis</h2>
+        <p id="final-score"></p>
+        <button onclick="location.reload()" style="padding: 10px 20px; cursor: pointer; background: var(--primary-color); color: white; border: none; border-radius: 5px;">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { s: "Я хочу, чтобы ты пришёл.", t: "Ich möchte, dass du kommst.", correct: true },
+        { s: "Я хочу что ты пришёл.", t: "Ich möchte, dass du kommst.", correct: false },
+        { s: "Это зависит от погоды.", t: "Das hängt vom Wetter ab.", correct: true },
+        { s: "Это зависит погоды.", t: "Das hängt vom Wetter ab.", correct: false },
+        { s: "На улице тепло.", t: "Draußen ist es warm.", correct: true },
+        { s: "Это тепло на улице.", t: "Draußen ist es warm.", correct: false },
+        { s: "Он любит свою жену.", t: "Er liebt seine Frau.", correct: true },
+        { s: "Он любит его жену.", t: "Er liebt seine (eines anderen) Frau.", correct: false },
+        { s: "Я ем ложкой.", t: "Ich esse mit dem Löffel.", correct: true },
+        { s: "Я ем с ложкой.", t: "Ich esse mit dem Löffel.", correct: false }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    let startX = 0;
+    let currentX = 0;
+    const card = document.getElementById('active-card');
+    const stampCorrect = document.getElementById('stamp-correct');
+    const stampWrong = document.getElementById('stamp-wrong');
+
+    function loadCard() {
+        if (currentIndex >= quizData.length) {
+            showFinal();
+            return;
+        }
+        const data = quizData[currentIndex];
+        document.getElementById('sentence-text').textContent = data.s;
+        document.getElementById('translation-text').textContent = data.t;
+        document.getElementById('counter').textContent = `${currentIndex + 1} / ${quizData.length}`;
+        document.getElementById('progress-fill').style.width = `${(currentIndex / quizData.length) * 100}%`;
+        
+        card.style.transform = `translateX(0) rotate(0)`;
+        card.style.transition = 'transform 0.1s linear';
+        stampCorrect.style.opacity = 0;
+        stampWrong.style.opacity = 0;
+    }
+
+    // Touch/Mouse Events
+    card.addEventListener('mousedown', startDrag);
+    card.addEventListener('touchstart', startDrag);
+
+    function startDrag(e) {
+        startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+        card.style.transition = 'none';
+    }
+
+    function drag(e) {
+        currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX) - startX;
+        const rotate = currentX / 15;
+        card.style.transform = `translateX(${currentX}px) rotate(${rotate}deg)`;
+
+        // Stempel-Sichtbarkeit
+        if (currentX > 50) {
+            stampCorrect.style.opacity = Math.min(currentX / 150, 1);
+            stampWrong.style.opacity = 0;
+        } else if (currentX < -50) {
+            stampWrong.style.opacity = Math.min(Math.abs(currentX) / 150, 1);
+            stampCorrect.style.opacity = 0;
+        } else {
+            stampCorrect.style.opacity = 0;
+            stampWrong.style.opacity = 0;
+        }
+    }
+
+    function endDrag() {
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('touchmove', drag);
+        if (currentX > 120) {
+            swipe('right');
+        } else if (currentX < -120) {
+            swipe('left');
+        } else {
+            card.style.transition = 'transform 0.3s ease';
+            card.style.transform = `translateX(0) rotate(0)`;
+            stampCorrect.style.opacity = 0;
+            stampWrong.style.opacity = 0;
+        }
+        currentX = 0;
+    }
+
+    function swipe(direction) {
+        const data = quizData[currentIndex];
+        const isCorrect = (direction === 'right' && data.correct === true) || 
+                          (direction === 'left' && data.correct === false);
+        
+        if (isCorrect) score++;
+
+        // Animation aus dem Bild
+        const moveOut = direction === 'right' ? 1000 : -1000;
+        card.style.transition = 'transform 0.5s ease-in';
+        card.style.transform = `translateX(${moveOut}px) rotate(${moveOut/20}deg)`;
+
+        setTimeout(() => {
+            currentIndex++;
+            loadCard();
+        }, 300);
+    }
+
+    function showFinal() {
+        document.getElementById('game-area').style.display = 'none';
+        const final = document.getElementById('final-screen');
+        final.style.display = 'block';
+        document.getElementById('final-score').textContent = `Du hast ${score} von ${quizData.length} Sätzen richtig bewertet!`;
+    }
+
+    loadCard();
+</script>
+
+</body>
+</html>
