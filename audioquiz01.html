@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Audio-Quiz: Alles Gemischt</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+
+        h2 { color: var(--primary-color); margin: 0 0 15px 0; }
+
+        .audio-section {
+            margin-bottom: 25px;
+        }
+
+        .play-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+            background-color: #2980b9;
+        }
+
+        .play-btn svg {
+            fill: white;
+            width: 45px;
+            height: 45px;
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-color);
+            color: white;
+            border-color: var(--error-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button.nav-btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .option-btn { font-size: 0.95rem; }
+            .container { padding: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Satz 1 von 10</div>
+    <h2>Hörverstehen</h2>
+    <p>Höre den Satz an und wähle die korrekte Variante.</p>
+
+    <div class="audio-section">
+        <button class="play-btn" onclick="playAudio()" title="Anhören">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+    </div>
+
+    <div id="options" class="options-list"></div>
+
+    <div id="feedback"></div>
+
+    <div class="controls">
+        <button class="nav-btn solution-btn" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="nav-btn next-btn" id="next-btn" onclick="nextQuestion()">Weiter</button>
+        <button class="nav-btn restart-btn" onclick="location.reload()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    // Ursprüngliche Daten
+    const rawQuestions = [
+        { text: "Я хочу, чтобы ты пришёл.", opts: ["Я хочу, чтобы ты пришёл.", "Я хочу что ты пришёл.", "Я хочу чтобы ты придёшь."], correct: "Я хочу, чтобы ты пришёл." },
+        { text: "Это зависит от моего настроения.", opts: ["Это зависит моё настроение.", "Это зависит от моего настроения.", "Это зависит от моё настроение."], correct: "Это зависит от моего настроения." },
+        { text: "На улице тепло.", opts: ["Это тепло на улице.", "На улице тепло.", "Тепло это на улице."], correct: "На улице тепло." },
+        { text: "Она любит своего мужа.", opts: ["Она любит своего мужа.", "Она любит её мужа.", "Она любит своего муж."], correct: "Она любит своего мужа." },
+        { text: "Я не знаю, хорошая ли сегодня погода.", opts: ["Я не знаю хорошая ли сегодня погода.", "Я не знаю если сегодня хорошая погода.", "Я не знаю ли сегодня хорошая погоda."], correct: "Я не знаю хорошая ли heute погода." },
+        { text: "Я люблю заниматься спортом.", opts: ["Я люблю делать спорт.", "Я люблю заниматься спортом.", "Я люблю заниматься спорт."], correct: "Я люблю заниматься спортом." },
+        { text: "Можно задать вопрос?", opts: ["Можно спросить вопрос?", "Можно задать вопрос?", "Можно спрашивать вопрос?"], correct: "Можно задать вопрос?" },
+        { text: "Я ем суп ложкой.", opts: ["Я ем суп с ложкой.", "Я ем суп ложкой.", "Я ем суп ложка."], correct: "Я ем суп ложкой." },
+        { text: "У меня много одежды.", opts: ["У меня много одежды.", "У меня много одеждыы.", "У меня много одежд."], correct: "У меня много одежды." },
+        { text: "Я хочу прийти.", opts: ["Я хочу чтобы я пришёл.", "Я хочу прийти.", "Я хочу приду."], correct: "Я хочу прийти." }
+    ];
+
+    let questions = [];
+    let currentQ = 0;
+    let locked = false;
+    let synth = window.speechSynthesis;
+    let maleVoice = null;
+
+    // Fisher-Yates Shuffle Algorithmus zum gründlichen Mischen
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function initQuiz() {
+        // 1. Fragen mischen
+        questions = shuffleArray([...rawQuestions]);
+        
+        // 2. Antwortoptionen innerhalb jeder Frage mischen
+        questions.forEach(q => {
+            q.shuffledOpts = shuffleArray([...q.opts]);
+        });
+
+        currentQ = 0;
+        renderQuestion();
+    }
+
+    function loadVoices() {
+        let voices = synth.getVoices();
+        // Suche gezielt nach männlichen russischen Stimmen
+        maleVoice = voices.find(v => v.lang.startsWith('ru') && 
+            (v.name.includes('Pavel') || v.name.includes('Dmitry') || v.name.includes('Maxim') || v.name.includes('Male')));
+        
+        if (!maleVoice) maleVoice = voices.find(v => v.lang.startsWith('ru'));
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+    loadVoices();
+
+    function renderQuestion() {
+        locked = false;
+        const q = questions[currentQ];
+        document.getElementById('progress').textContent = `Satz ${currentQ + 1} von ${questions.length}`;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+
+        q.shuffledOpts.forEach(optText => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = optText;
+            btn.onclick = () => checkAnswer(optText, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function playAudio() {
+        if (synth.speaking) synth.cancel();
+        const uttr = new SpeechSynthesisUtterance(questions[currentQ].text);
+        if (maleVoice) uttr.voice = maleVoice;
+        uttr.lang = 'ru-RU';
+        uttr.rate = 0.85; // Leicht verlangsamt für Lerner
+        synth.speak(uttr);
+    }
+
+    function checkAnswer(selectedText, btn) {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const allBtns = document.querySelectorAll('.option-btn');
+
+        if (selectedText === q.correct) {
+            btn.classList.add('correct');
+            document.getElementById('feedback').textContent = "Richtig!";
+            document.getElementById('feedback').style.color = "var(--success-color)";
+        } else {
+            btn.classList.add('wrong');
+            // Richtige Antwort markieren
+            allBtns.forEach(b => {
+                if(b.textContent === q.correct) b.classList.add('correct');
+            });
+            document.getElementById('feedback').textContent = "Leider falsch.";
+            document.getElementById('feedback').style.color = "var(--error-color)";
+        }
+        finishStep();
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const allBtns = document.querySelectorAll('.option-btn');
+        
+        allBtns.forEach(b => {
+            if(b.textContent === q.correct) b.classList.add('correct');
+        });
+
+        document.getElementById('feedback').textContent = "Lösung wurde markiert.";
+        document.getElementById('feedback').style.color = "var(--warning-color)";
+        finishStep();
+    }
+
+    function finishStep() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            renderQuestion();
+        } else {
+            showEnd();
+        }
+    }
+
+    function showEnd() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle 10 Sätze durchgearbeitet.</p>
+            <p>Dein Hörverständnis wird immer besser!</p>
+            <button class="nav-btn restart-btn" onclick="location.reload()">Neustart</button>
+        `;
+    }
+
+    // Initialisierung
+    initQuiz();
+</script>
+
+</body>
+</html>
