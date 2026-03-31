@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Direkt-Feedback</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        h2 { text-align: center; margin-top: 0; color: var(--primary-color); }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1rem;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .exercise-item {
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .translation {
+            display: block;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        /* Dropdown Styling */
+        select {
+            font-size: 1rem;
+            padding: 5px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+            margin: 2px 0;
+        }
+
+        select.correct {
+            border-color: var(--success-color);
+            background-color: #e8f5e9;
+            color: var(--success-color);
+        }
+
+        select.wrong {
+            border-color: var(--error-color);
+            background-color: #ffebee;
+            color: var(--error-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .reset-btn { background-color: var(--primary-color); color: white; }
+        button:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .exercise-item { font-size: 1rem; }
+            select { width: 100%; display: block; margin-top: 5px; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Lückentext: Die 10 häufigsten Fehler</h2>
+    <div class="instruction">
+        Wähle die richtige Form. Deine Antwort wird sofort geprüft.
+    </div>
+
+    <div id="quiz-container">
+        <!-- Satz 1 -->
+        <div class="exercise-item">
+            <span class="translation">„Ich möchte, dass du kommst.“ (Wunsch mit Subjektwechsel)</span>
+            Я хочу, 
+            <select onchange="checkOption(this)" data-answer="чтобы">
+                <option value="">...</option>
+                <option value="что">что</option>
+                <option value="чтобы">чтобы</option>
+            </select> 
+            ты пришёл.
+        </div>
+
+        <!-- Satz 2 -->
+        <div class="exercise-item">
+            <span class="translation">„Ich möchte, dass du das liest.“ (Zeitform nach чтобы)</span>
+            Я хочу, чтобы ты это 
+            <select onchange="checkOption(this)" data-answer="прочитала">
+                <option value="">...</option>
+                <option value="прочитаешь">прочитаешь</option>
+                <option value="прочитала">прочитала</option>
+            </select> 
+            .
+        </div>
+
+        <!-- Satz 3 -->
+        <div class="exercise-item">
+            <span class="translation">„Das hängt von meiner Stimmung ab.“ (Abhängigkeit)</span>
+            Это зависит 
+            <select onchange="checkOption(this)" data-answer="от">
+                <option value="">...</option>
+                <option value="с">с</option>
+                <option value="от">от</option>
+            </select> 
+            моего настроения.
+        </div>
+
+        <!-- Satz 4 -->
+        <div class="exercise-item">
+            <span class="translation">„Er liebt seine (eigene) Frau.“ (Reflexivpronomen)</span>
+            Он любит 
+            <select onchange="checkOption(this)" data-answer="свою">
+                <option value="">...</option>
+                <option value="его">его</option>
+                <option value="свою">свою</option>
+            </select> 
+            жену.
+        </div>
+
+        <!-- Satz 5 -->
+        <div class="exercise-item">
+            <span class="translation">„Ich weiß nicht, ob es heute warm ist.“ (Indirekte Frage)</span>
+            Я не знаю, тепло 
+            <select onchange="checkOption(this)" data-answer="ли">
+                <option value="">...</option>
+                <option value="ли">ли</option>
+                <option value="если">если</option>
+            </select> 
+            сегодня на улице.
+        </div>
+
+        <!-- Satz 6 -->
+        <div class="exercise-item">
+            <span class="translation">„Draußen ist es heute windig.“ (Wetterbeschreibung)</span>
+            Сегодня на улице 
+            <select onchange="checkOption(this)" data-answer="ветрено">
+                <option value="">...</option>
+                <option value="это ветрено">это ветрено</option>
+                <option value="ветрено">ветрено</option>
+            </select> 
+            .
+        </div>
+
+        <!-- Satz 7 -->
+        <div class="exercise-item">
+            <span class="translation">„Ich gehe zum Yoga.“ (Sportliche Tätigkeit)</span>
+            Я иду 
+            <select onchange="checkOption(this)" data-answer="заниматься">
+                <option value="">...</option>
+                <option value="делать">делать</option>
+                <option value="заниматься">заниматься</option>
+            </select> 
+            йогой.
+        </div>
+
+        <!-- Satz 8 -->
+        <div class="exercise-item">
+            <span class="translation">„Darf ich eine Frage stellen?“ (Kollokation)</span>
+            Можно 
+            <select onchange="checkOption(this)" data-answer="задать">
+                <option value="">...</option>
+                <option value="спросить">спросить</option>
+                <option value="задать">задать</option>
+            </select> 
+            вопрос?
+        </div>
+
+        <!-- Satz 9 -->
+        <div class="exercise-item">
+            <span class="translation">„Ich esse die Suppe mit dem Löffel.“ (Instrumental)</span>
+            Я ем суп 
+            <select onchange="checkOption(this)" data-answer="ложкой">
+                <option value="">...</option>
+                <option value="ложкой">ложкой</option>
+                <option value="с ложкой">с ложкой</option>
+            </select> 
+            .
+        </div>
+
+        <!-- Satz 10 -->
+        <div class="exercise-item">
+            <span class="translation">„Hier gibt es viel Essen.“ (Sammelbegriffe im Singular)</span>
+            Здесь много 
+            <select onchange="checkOption(this)" data-answer="еды">
+                <option value="">...</option>
+                <option value="еды">еды</option>
+                <option value="ед">ед</option>
+            </select> 
+            .
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="solution-btn" onclick="showAllSolutions()">Alle Lösungen zeigen</button>
+        <button class="reset-btn" onclick="resetQuiz()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    function checkOption(selectElement) {
+        const selectedValue = selectElement.value;
+        const correctAnswer = selectElement.getAttribute('data-answer');
+
+        if (selectedValue === "") {
+            selectElement.className = "";
+        } else if (selectedValue === correctAnswer) {
+            selectElement.className = "correct";
+        } else {
+            selectElement.className = "wrong";
+        }
+    }
+
+    function showAllSolutions() {
+        const allSelects = document.querySelectorAll('select');
+        allSelects.forEach(select => {
+            select.value = select.getAttribute('data-answer');
+            select.className = "correct";
+        });
+    }
+
+    function resetQuiz() {
+        if(confirm("Möchtest du alle Antworten zurücksetzen?")) {
+            const allSelects = document.querySelectorAll('select');
+            allSelects.forEach(select => {
+                select.value = "";
+                select.className = "";
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
