@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Dialog-Pfad</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --ai-bubble: #e9e9eb;
+            --user-bubble: #007aff;
+            --bg-color: #f4f7f6;
+            --success: #27ae60;
+            --error: #e74c3c;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            height: 90vh;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 10px;
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        #chat-window {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #fafafa;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            font-size: 1rem;
+            line-height: 1.4;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ai-message {
+            align-self: flex-start;
+            background-color: var(--ai-bubble);
+            color: black;
+            border-bottom-left-radius: 2px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .options-container {
+            padding: 15px;
+            background: #fff;
+            border-top: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid var(--user-bubble);
+            color: var(--user-bubble);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background-color: var(--user-bubble);
+            color: white;
+        }
+
+        .status-msg {
+            font-size: 0.8rem;
+            text-align: center;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        /* Responsivität */
+        @media (max-width: 480px) {
+            .chat-container { height: 100vh; border-radius: 0; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">Russisch-Chat mit Ira</div>
+    <div id="chat-window">
+        <!-- Nachrichten erscheinen hier -->
+    </div>
+    <div id="status" class="status-msg"></div>
+    <div id="options-container" class="options-container">
+        <!-- Optionen erscheinen hier -->
+    </div>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const optionsContainer = document.getElementById('options-container');
+    const statusDiv = document.getElementById('status');
+
+    const dialogData = [
+        {
+            ai: "Привет! Что ты делал сегодня утром?",
+            options: [
+                { text: "Я делал спорт.", correct: false, feedback: "Используй глагол 'заниматься' с творительным падежом!" },
+                { text: "Я занимался спортом.", correct: true }
+            ]
+        },
+        {
+            ai: "Молодец! А какие планы на вечер? Я очень хочу, чтобы ты...",
+            options: [
+                { text: "завтра придёшь ко мне.", correct: false, feedback: "После 'чтобы' нужно использовать прошедшее время!" },
+                { text: "завтра пришёл ко мне.", correct: true }
+            ]
+        },
+        {
+            ai: "Кстати, ты уже знаешь, какая будет погода?",
+            options: [
+                { text: "Я не знаю, будет ли тепло.", correct: true },
+                { text: "Я не знаю, если будет тепло.", correct: false, feedback: "Для вопроса 'ob' мы используем частицу 'ли', а не 'если'." }
+            ]
+        },
+        {
+            ai: "Понятно. Значит, ты придёшь?",
+            options: [
+                { text: "Это зависит от моего настроения.", correct: true },
+                { text: "Это зависит моё настроение.", correct: false, feedback: "Не забывай про предлог 'от' и родительный падеж!" }
+            ]
+        },
+        {
+            ai: "Ой, я видела Ивана. Он гулял в парке.",
+            options: [
+                { text: "Он гулял с его женой?", correct: false, feedback: "Если это его собственная жена, используй 'свою'!" },
+                { text: "Он гулял со своей женой?", correct: true }
+            ]
+        },
+        {
+            ai: "Да, с ней. Слушай, я проголодалась. Давай поедим? У меня...",
+            options: [
+                { text: "много еды в холодильнике.", correct: true },
+                { text: "много еды во множественном числе.", correct: false, feedback: "Слово 'еда' используется только в единственном числе!" }
+            ]
+        },
+        {
+            ai: "Отлично! Чем будем есть суп?",
+            options: [
+                { text: "Будем есть с ложкой.", correct: false, feedback: "Инструмент (ложка) используется в творительном падеже БЕЗ предлога 'с'!" },
+                { text: "Будем есть ложкой.", correct: true }
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+
+    function addMessage(text, sender) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}-message`;
+        msgDiv.textContent = text;
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function showOptions() {
+        optionsContainer.innerHTML = "";
+        const step = dialogData[currentStep];
+
+        step.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt.text;
+            btn.onclick = () => handleChoice(opt);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function handleChoice(option) {
+        addMessage(option.text, 'user');
+        optionsContainer.innerHTML = "";
+        statusDiv.textContent = "Ira schreibt...";
+
+        setTimeout(() => {
+            if (option.correct) {
+                statusDiv.textContent = "";
+                currentStep++;
+                if (currentStep < dialogData.length) {
+                    addMessage(dialogData[currentStep].ai, 'ai');
+                    showOptions();
+                } else {
+                    addMessage("Ты отлично справился! Все грамматические правила соблюдены. До встречи!", 'ai');
+                    statusDiv.textContent = "Chat beendet.";
+                }
+            } else {
+                statusDiv.textContent = "Korrektur";
+                addMessage("Нет, так сказать нельзя. " + option.feedback, 'ai');
+                setTimeout(() => {
+                    addMessage("Попробуй ещё раз:", 'ai');
+                    showOptions();
+                }, 1000);
+            }
+        }, 1000);
+    }
+
+    // Start des Dialogs
+    setTimeout(() => {
+        addMessage(dialogData[0].ai, 'ai');
+        showOptions();
+    }, 500);
+
+</script>
+
+</body>
+</html>
