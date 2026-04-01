@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Kontext-Korrektur Pro</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --bg-color: #f4f7f6;
+            --modal-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+
+        /* Der interaktive Text */
+        .text-block {
+            font-size: 1.3rem;
+            line-height: 2.2;
+            color: var(--primary-color);
+            text-align: left;
+            background: #fff;
+            padding: 20px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .hotspot {
+            border-bottom: 2px dashed var(--accent-color);
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-weight: bold;
+        }
+
+        .hotspot:hover {
+            background-color: #ebf5fb;
+        }
+
+        /* Feedback-Klassen im Text */
+        .is-correct { color: var(--success-color) !important; border-bottom: 2px solid var(--success-color); background-color: #e8f5e9; }
+        .is-wrong { color: var(--error-color) !important; border-bottom: 2px solid var(--error-color); background-color: #ffebee; }
+
+        /* Modal / Multiple Choice Menu */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-title { margin-bottom: 15px; font-weight: bold; color: var(--primary-color); }
+
+        .choice-list { display: flex; flex-direction: column; gap: 10px; }
+
+        .choice-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .choice-btn:hover { border-color: var(--accent-color); background-color: #f0f8ff; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button.nav-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .reset-btn { background-color: var(--primary-color); }
+        .solution-btn { background-color: var(--warning-color, #f39c12); }
+
+        @media (max-width: 600px) {
+            .text-block { font-size: 1.1rem; }
+            button.nav-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Kontext-Korrektur</h2>
+    <div class="instruction">
+        Klicke auf die markierten Stellen im Text und wähle die korrekte russische Form aus.
+    </div>
+
+    <div id="text-area" class="text-block">
+        Привет! Сегодня <span class="hotspot" data-id="0">это тепло</span> на улице. 
+        Я хочу, <span class="hotspot" data-id="1">что</span> ты пришёл. 
+        Я <span class="hotspot" data-id="2">делаю спорт</span> каждый день. 
+        Это <span class="hotspot" data-id="3">зависит работы</span>. 
+        Я не знаю, <span class="hotspot" data-id="4">если</span> он придёт. 
+        Иван любит <span class="hotspot" data-id="5">его</span> жену. 
+        Можно <span class="hotspot" data-id="6">спросить вопрос</span>? 
+        Я ем суп <span class="hotspot" data-id="7">с ложкой</span>. 
+        У него много <span class="hotspot" data-id="8">одежд</span>.
+        Я <span class="hotspot" data-id="9">делаю курс</span> русского языка.
+    </div>
+
+    <div class="controls">
+        <button class="nav-btn solution-btn" onclick="showAllSolutions()">Alle Lösungen zeigen</button>
+        <button class="nav-btn reset-btn" onclick="location.reload()">Neustart</button>
+    </div>
+</div>
+
+<!-- Modal für Multiple Choice -->
+<div id="modal-overlay" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title">Wähle die richtige Form:</div>
+        <div id="choice-list" class="choice-list"></div>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { id: 0, choices: ["это тепло", "тепло", "тепло это"], correct: "тепло" },
+        { id: 1, choices: ["что", "чтобы", "если"], correct: "чтобы" },
+        { id: 2, choices: ["делаю спорт", "занимаюсь спортом", "делаю спортом"], correct: "занимаюсь спортом" },
+        { id: 3, choices: ["зависит работы", "зависит от работы", "зависит из работы"], correct: "зависит от работы" },
+        { id: 4, choices: ["если", "ли", "ли сегодня"], correct: "ли" },
+        { id: 5, choices: ["его", "свою", "её"], correct: "свою" },
+        { id: 6, choices: ["спросить вопрос", "задать вопрос", "спрашивать вопроса"], correct: "задать вопрос" },
+        { id: 7, choices: ["с ложкой", "ложкой", "ложка"], correct: "ложкой" },
+        { id: 8, choices: ["одежд", "одежда", "одежды"], correct: "одежды" }, // Gen. Sing nach много
+        { id: 9, choices: ["делаю курс", "прохожу курс", "делаю курсом"], correct: "прохожу курс" }
+    ];
+
+    let currentHotspotId = null;
+    const modal = document.getElementById('modal-overlay');
+    const choiceList = document.getElementById('choice-list');
+
+    // Klick-Event für Hotspots
+    document.querySelectorAll('.hotspot').forEach(hotspot => {
+        hotspot.addEventListener('click', function() {
+            currentHotspotId = this.getAttribute('data-id');
+            openModal(currentHotspotId);
+        });
+    });
+
+    function openModal(id) {
+        const data = quizData[id];
+        choiceList.innerHTML = '';
+        
+        data.choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.textContent = choice;
+            btn.onclick = () => makeChoice(choice, id);
+            choiceList.appendChild(btn);
+        });
+        
+        modal.style.display = 'flex';
+    }
+
+    function makeChoice(choice, id) {
+        const data = quizData[id];
+        const hotspot = document.querySelector(`.hotspot[data-id="${id}"]`);
+        
+        // Direkte Aktualisierung des Textes (Lösung im Feld anzeigen)
+        hotspot.textContent = choice;
+        
+        // Sofortiges Feedback
+        if (choice === data.correct) {
+            hotspot.className = 'hotspot is-correct';
+        } else {
+            hotspot.className = 'hotspot is-wrong';
+        }
+        
+        closeModal();
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    function showAllSolutions() {
+        quizData.forEach(data => {
+            const hotspot = document.querySelector(`.hotspot[data-id="${data.id}"]`);
+            hotspot.textContent = data.correct;
+            hotspot.className = 'hotspot is-correct';
+        });
+    }
+
+    // Modal schließen beim Klick auf Overlay
+    window.onclick = function(event) {
+        if (event.target == modal) closeModal();
+    }
+</script>
+
+</body>
+</html>
