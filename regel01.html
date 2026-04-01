@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Regel-Zuordnung</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        /* Anzeige des Beispielsatzes */
+        .example-card {
+            background: #fff;
+            border: 3px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .translation {
+            display: block;
+            font-size: 1rem;
+            font-weight: normal;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        /* Regel-Kacheln */
+        .rules-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .rule-tile {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 15px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            min-height: 60px;
+        }
+
+        .rule-tile:hover {
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .rule-tile.selected {
+            border-color: var(--accent-color);
+            background-color: #ebf5fb;
+        }
+
+        .rule-tile.correct {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        .rule-tile.wrong {
+            background-color: var(--error-color);
+            border-color: var(--error-color);
+            color: white;
+        }
+
+        .rule-tile.solved {
+            border-color: var(--warning-color);
+            background-color: #fff3e0;
+            color: var(--warning-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        button.action-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 550px) {
+            .rules-grid { grid-template-columns: 1fr; }
+            .example-card { font-size: 1.2rem; }
+            button.action-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <h2>Regel-Zuordnung</h2>
+    <div class="instruction">Welche grammatikalische Regel erklärt diesen Satz?</div>
+
+    <div class="example-card">
+        <span id="example-sentence">---</span>
+        <span class="translation" id="example-translation">---</span>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="rules-grid" id="rules-container">
+        <!-- Regeln werden hier geladen -->
+    </div>
+
+    <div class="controls">
+        <button class="action-btn solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="action-btn next-btn" id="next-btn" onclick="nextLevel()">Weiter</button>
+        <button class="action-btn restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const allRules = [
+        "Wünsche: чтобы + Präteritum",
+        "Abhängigkeit: зависит от + Genitiv",
+        "Werkzeuge: Instrumental ohne „с“",
+        "Besitz: Reflexivpronomen „свой“",
+        "Wetter: Kein „это“ verwenden",
+        "Sport/Hobbys: заниматься + Instrumental",
+        "Indirekte Fragen: Partikel „ли“ statt „если“",
+        "Mengen: Nur Singular (Singularetantum)",
+        "Fragen: задать + вопрос",
+        "Kurse: Verb „проходить“ nutzen"
+    ];
+
+    const questions = [
+        { s: "Я хочу, чтобы ты пришёл.", t: "Ich möchte, dass du kommst.", r: allRules[0] },
+        { s: "Это зависит от погоды.", t: "Das hängt vom Wetter ab.", r: allRules[1] },
+        { s: "Я пишу ручкой.", t: "Ich schreibe mit dem Kuli.", r: allRules[2] },
+        { s: "Он любит свою жену.", t: "Er liebt seine Frau.", r: allRules[3] },
+        { s: "На улице тепло.", t: "Draußen ist es warm.", r: allRules[4] },
+        { s: "Я занимаюсь йогой.", t: "Ich mache Yoga.", r: allRules[5] },
+        { s: "Я не знаю, придёт ли он.", t: "Ich weiß nicht, ob er kommt.", r: allRules[6] },
+        { s: "У меня много еды.", t: "Ich habe viel Essen.", r: allRules[7] },
+        { s: "Можно задать вопрос?", t: "Darf ich eine Frage stellen?", r: allRules[8] },
+        { s: "Я прохожу курс русского языка.", t: "Ich absolviere einen Russischkurs.", r: allRules[9] }
+    ];
+
+    let currentQ = 0;
+    let locked = false;
+
+    function initLevel() {
+        locked = false;
+        const q = questions[currentQ];
+        document.getElementById('progress').textContent = `Aufgabe ${currentQ + 1} von ${questions.length}`;
+        document.getElementById('example-sentence').textContent = q.s;
+        document.getElementById('example-translation').textContent = `„${q.t}“`;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+
+        const container = document.getElementById('rules-container');
+        container.innerHTML = "";
+
+        // Wähle die richtige Regel + 3 zufällige falsche Regeln aus
+        let options = [q.r];
+        let otherRules = allRules.filter(r => r !== q.r);
+        shuffleArray(otherRules);
+        options.push(otherRules[0], otherRules[1], otherRules[2]);
+        shuffleArray(options);
+
+        options.forEach(ruleText => {
+            const tile = document.createElement('div');
+            tile.className = 'rule-tile';
+            tile.textContent = ruleText;
+            tile.onclick = () => checkAnswer(ruleText, tile);
+            container.appendChild(tile);
+        });
+    }
+
+    function checkAnswer(selected, tile) {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const feedback = document.getElementById('feedback');
+
+        if (selected === q.r) {
+            tile.classList.add('correct');
+            feedback.textContent = "Richtig!";
+            feedback.style.color = "var(--success-color)";
+        } else {
+            tile.classList.add('wrong');
+            highlightCorrect();
+            feedback.textContent = "Leider falsch.";
+            feedback.style.color = "var(--error-color)";
+        }
+        showNextControls();
+    }
+
+    function highlightCorrect() {
+        const tiles = document.querySelectorAll('.rule-tile');
+        tiles.forEach(t => {
+            if (t.textContent === questions[currentQ].r) {
+                t.classList.add('correct');
+            }
+        });
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const tiles = document.querySelectorAll('.rule-tile');
+        tiles.forEach(t => {
+            if (t.textContent === questions[currentQ].r) {
+                t.classList.add('solved');
+            }
+        });
+        document.getElementById('feedback').textContent = "Die richtige Regel wurde markiert.";
+        document.getElementById('feedback').style.color = "var(--warning-color)";
+        showNextControls();
+    }
+
+    function showNextControls() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            initLevel();
+        } else {
+            showFinalScreen();
+        }
+    }
+
+    function showFinalScreen() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle Beispielsätze den richtigen Grammatikregeln zugeordnet.</p>
+            <p>Du bist nun bereit, diese Fehler in deiner eigenen Sprache zu vermeiden!</p>
+            <button class="action-btn restart-btn" onclick="location.reload()">Neustart</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du die Übung neu starten?")) {
+            currentQ = 0;
+            initLevel();
+        }
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
