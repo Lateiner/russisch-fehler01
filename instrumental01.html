@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Instrumental mit Bildern</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 650px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin: 0 0 10px 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+
+        /* Bild-Anzeige */
+        .image-container {
+            width: 100%;
+            height: 250px;
+            background: #fff;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .sentence {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+            line-height: 1.6;
+        }
+
+        .gap {
+            color: var(--accent-color);
+            border-bottom: 3px solid var(--accent-color);
+            min-width: 100px;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid var(--primary-color);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .option-btn.correct { background-color: var(--success-color); color: white; border-color: var(--success-color); }
+        .option-btn.wrong { background-color: var(--error-color); color: white; border-color: var(--error-color); }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button.action-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            font-weight: bold;
+            margin-bottom: 15px;
+            min-height: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 480px) {
+            .sentence { font-size: 1.2rem; }
+            .option-btn { font-size: 1rem; }
+            .image-container { height: 180px; }
+            button.action-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 5</div>
+    <h2>Instrumental-Trainer</h2>
+    <div class="instruction">Wähle die richtige grammatikalische Form für das gezeigte Werkzeug.</div>
+
+    <div class="image-container">
+        <img id="tool-image" src="" alt="Werkzeug">
+    </div>
+
+    <div class="sentence" id="sentence-display"></div>
+
+    <div id="feedback"></div>
+
+    <div class="options-grid" id="options-container"></div>
+
+    <div class="controls">
+        <button class="action-btn solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="action-btn next-btn" id="next-btn" onclick="nextQuestion()">Weiter</button>
+        <button class="action-btn restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            img: "loeffel.jpg", // Hier Bild vom Löffel einfügen
+            sentence: "Я ем суп",
+            correct: "ложкой",
+            options: ["ложкой", "с ложкой", "ложка"],
+            hint: "Das Werkzeug steht im Instrumental OHNE 'с'."
+        },
+        {
+            img: "fueller.jpg", // Hier Bild vom Füller einfügen
+            sentence: "Я пишу письмо",
+            correct: "ручкой",
+            options: ["ручка", "с ручкой", "ручкой"],
+            hint: "Beim Schreiben nutzt man den Instrumental der 'ручка'."
+        },
+        {
+            img: "gabel.jpg", // Hier Bild der Gabel einfügen
+            sentence: "Он ест салат",
+            correct: "вилкой",
+            options: ["с вилкой", "вилкой", "вилка"],
+            hint: "Besteck wird im Russischen ohne Präposition 'mit' verwendet."
+        },
+        {
+            img: "messer.jpg", // Hier Bild vom Messer einfügen
+            sentence: "Она режет хлеб",
+            correct: "ножом",
+            options: ["нож", "ножом", "с ножом"],
+            hint: "Messer (нож) wird im Instrumental zu ножом."
+        },
+        {
+            img: "bleistift.jpg", // Hier Bild vom Bleistift einfügen
+            sentence: "Я рисую",
+            correct: "карандашом",
+            options: ["карандашом", "карандаш", "с карандашом"],
+            hint: "Bleistift (карандаш) erhält die Endung -ом."
+        }
+    ];
+
+    let currentQ = 0;
+    let locked = false;
+
+    function initQuestion() {
+        locked = false;
+        const q = questions[currentQ];
+        document.getElementById('progress').textContent = `Aufgabe ${currentQ + 1} von ${questions.length}`;
+        document.getElementById('tool-image').src = q.img;
+        document.getElementById('sentence-display').innerHTML = `${q.sentence} <span class="gap" id="gap">...</span>`;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+
+        const optionsDiv = document.getElementById('options-container');
+        optionsDiv.innerHTML = "";
+
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const gap = document.getElementById('gap');
+        const feedback = document.getElementById('feedback');
+
+        gap.textContent = selected;
+
+        if (selected === q.correct) {
+            btn.classList.add('correct');
+            feedback.textContent = "Richtig!";
+            feedback.style.color = "var(--success-color)";
+        } else {
+            btn.classList.add('wrong');
+            feedback.textContent = `Falsch. ${q.hint}`;
+            feedback.style.color = "var(--error-color)";
+            highlightCorrect();
+        }
+        showNextControls();
+    }
+
+    function highlightCorrect() {
+        const btns = document.querySelectorAll('.option-btn');
+        btns.forEach(b => {
+            if (b.textContent === questions[currentQ].correct) {
+                b.classList.add('correct');
+            }
+        });
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        document.getElementById('gap').textContent = q.correct;
+        document.getElementById('feedback').textContent = "Lösung: " + q.correct;
+        document.getElementById('feedback').style.color = "var(--warning-color)";
+        highlightCorrect();
+        showNextControls();
+    }
+
+    function showNextControls() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextQuestion() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            initQuestion();
+        } else {
+            showEndScreen();
+        }
+    }
+
+    function showEndScreen() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle Werkzeuge korrekt benannt.</p>
+            <p style="background:#e8f5e9; padding:15px; border-radius:10px;">
+                <b>Wichtige Regel:</b> Wenn du ein Werkzeug benutzt (Schreiben, Essen, Schneiden), verwendest du im Russischen den <b>Instrumentalis ohne Präposition</b>.
+            </p>
+            <button class="action-btn restart-btn" onclick="location.reload()">Neustart</button>
+        `;
+    }
+
+    function restartGame() {
+        currentQ = 0;
+        initQuestion();
+    }
+
+    initQuestion();
+</script>
+
+</body>
+</html>
