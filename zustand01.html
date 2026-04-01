@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Der "это"-Check</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .sentence-display {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin: 30px 0;
+            min-height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--primary-color);
+        }
+
+        .choices-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .choice-btn {
+            padding: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 2px solid var(--primary-color);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background-color: #f0f7ff;
+            border-color: var(--accent-color);
+        }
+
+        .choice-btn.correct-pick {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .choice-btn.wrong-pick {
+            background-color: var(--error-color);
+            color: white;
+            border-color: var(--error-color);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        button.action-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 3rem;
+            font-size: 1.1rem;
+            padding: 0 10px;
+        }
+
+        @media (max-width: 480px) {
+            .choices-container { grid-template-columns: 1fr; }
+            .sentence-display { font-size: 1.3rem; }
+            button.action-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Satz 1 von 10</div>
+    <h2>Stimmungs-Check</h2>
+    
+    <div class="instruction">
+        Wird das Wort <b>„это“</b> hier benötigt? <br>
+        (Identifikation vs. Wetter/Zustand)
+    </div>
+
+    <div id="sentence-display" class="sentence-display"></div>
+
+    <div id="choices-container" class="choices-container">
+        <button class="choice-btn" id="btn-needed" onclick="checkAnswer(true)">„это“ ist nötig</button>
+        <button class="choice-btn" id="btn-wrong" onclick="checkAnswer(false)">„это“ ist falsch</button>
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="controls">
+        <button class="action-btn solution-btn" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="action-btn next-btn" id="next-btn" onclick="nextLevel()">Weiter</button>
+        <button class="action-btn restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        { s: "Это моя книга.", needed: true, expl: "Korrekt! Hier identifizieren wir einen Gegenstand: 'Das ist mein Buch'." },
+        { s: "На улице тепло.", needed: false, expl: "Richtig! Bei Wetterbeschreibungen ist 'это' im Russischen falsch." },
+        { s: "Это мой новый учитель.", needed: true, expl: "Richtig! Wir stellen jemanden vor: 'Das ist mein neuer Lehrer'." },
+        { s: "Сегодня очень ветрено.", needed: false, expl: "Korrekt! 'Heute ist es windig' braucht im Russischen kein 'это'." },
+        { s: "Это наш дом.", needed: true, expl: "Genau. Zur Identifikation von Gebäuden oder Orten brauchen wir 'это'." },
+        { s: "Вчера было холодно.", needed: false, expl: "Richtig! Auch in der Vergangenheit nutzt man bei Wetter kein 'это'." },
+        { s: "Это интересная история.", needed: true, expl: "Korrekt! 'Das ist eine interessante Geschichte'." },
+        { s: "Здесь очень жарко.", needed: false, expl: "Richtig! Zustände an Orten ('Hier ist es heiß') stehen ohne 'это'." },
+        { s: "Это мой телефон.", needed: true, expl: "Richtig! Klassische Identifikation eines Objekts." },
+        { s: "Сейчас на улице прохладно.", needed: false, expl: "Korrekt! 'Draußen ist es kühl' – kein 'это' nötig." }
+    ];
+
+    let currentLvl = 0;
+    let locked = false;
+
+    function initLevel() {
+        locked = false;
+        const level = levels[currentLvl];
+        const display = document.getElementById('sentence-display');
+        const progress = document.getElementById('progress');
+        const feedback = document.getElementById('feedback');
+        const nextBtn = document.getElementById('next-btn');
+        const solBtn = document.getElementById('sol-btn');
+
+        // Buttons zurücksetzen
+        document.getElementById('btn-needed').className = "choice-btn";
+        document.getElementById('btn-wrong').className = "choice-btn";
+
+        // Satz anzeigen (Immer ohne 'это' bei Wetter, und mit 'это' bei Identifikation zum Testen)
+        display.textContent = level.s;
+        
+        progress.textContent = `Satz ${currentLvl + 1} von ${levels.length}`;
+        feedback.textContent = "";
+        nextBtn.style.display = "none";
+        solBtn.style.display = "inline-block";
+    }
+
+    function checkAnswer(userChoice) {
+        if (locked) return;
+        locked = true;
+        const level = levels[currentLvl];
+        const feedback = document.getElementById('feedback');
+        const btnNeeded = document.getElementById('btn-needed');
+        const btnWrong = document.getElementById('btn-wrong');
+
+        if (userChoice === level.needed) {
+            feedback.innerHTML = `<span style="color:var(--success-color)">Richtig!</span><br>${level.expl}`;
+            if(userChoice) btnNeeded.classList.add('correct-pick');
+            else btnWrong.classList.add('correct-pick');
+        } else {
+            feedback.innerHTML = `<span style="color:var(--error-color)">Falsch.</span><br>${level.expl}`;
+            if(userChoice) btnNeeded.classList.add('wrong-pick');
+            else btnWrong.classList.add('wrong-pick');
+        }
+        showNext();
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const level = levels[currentLvl];
+        const feedback = document.getElementById('feedback');
+        feedback.innerHTML = `<span style="color:var(--warning-color)">Lösung:</span><br>${level.expl}`;
+        
+        if(level.needed) document.getElementById('btn-needed').classList.add('correct-pick');
+        else document.getElementById('btn-wrong').classList.add('correct-pick');
+        
+        showNext();
+    }
+
+    function showNext() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentLvl === levels.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentLvl < levels.length - 1) {
+            currentLvl++;
+            initLevel();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Check abgeschlossen!</h2>
+            <p>Du hast den Unterschied zwischen Identifikation (это) und Wetterbeschreibungen (ohne это) gelernt.</p>
+            <p style="background:#e8f5e9; padding:15px; border-radius:10px;">
+                Merkregel: Sag niemals <b>„Это тепло“</b>, wenn du das Wetter meinst!
+            </p>
+            <button class="action-btn restart-btn" onclick="location.reload()">Neustart</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du von vorne beginnen?")) {
+            currentLvl = 0;
+            initLevel();
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
