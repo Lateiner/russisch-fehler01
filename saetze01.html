@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Trainer: Satz-Vervollständigung</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --warning-color: #f39c12;
+            --bg-color: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+
+        h2 { color: var(--primary-color); margin-top: 0; }
+
+        .instruction {
+            background: #eef2f3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+
+        /* Satzanfang */
+        .sentence-start {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            padding: 20px;
+            border-left: 5px solid var(--accent-color);
+            background: #fafafa;
+            display: inline-block;
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Kacheln */
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .option-tile {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-tile:hover {
+            border-color: var(--accent-color);
+            background-color: #f0f8ff;
+        }
+
+        .option-tile.selected-correct {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .option-tile.selected-wrong {
+            background-color: var(--error-color);
+            color: white;
+            border-color: var(--error-color);
+        }
+
+        .option-tile.is-solution {
+            border-color: var(--warning-color);
+            background-color: #fff3e0;
+            color: var(--warning-color);
+            border-style: dashed;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        button.action-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .next-btn { background-color: var(--accent-color); color: white; display: none; }
+        .solution-btn { background-color: var(--warning-color); color: white; }
+        .restart-btn { background-color: var(--primary-color); color: white; }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 3rem;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 480px) {
+            .sentence-start { font-size: 1.3rem; width: 100%; box-sizing: border-box; }
+            .option-tile { font-size: 1rem; }
+            button.action-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="quiz-container">
+    <div class="progress" id="progress">Satz 1 von 10</div>
+    <h2>Satz-Vervollständigung</h2>
+    <div class="instruction">Wähle die Kachel, die den Satz grammatikalisch korrekt beendet.</div>
+
+    <div id="sentence-start" class="sentence-start">---</div>
+
+    <div id="options-container" class="options-container">
+        <!-- Kacheln werden hier geladen -->
+    </div>
+
+    <div id="feedback"></div>
+
+    <div class="controls">
+        <button class="action-btn solution-btn" id="sol-btn" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="action-btn next-btn" id="next-btn" onclick="nextLevel()">Weiter</button>
+        <button class="action-btn restart-btn" onclick="restartGame()">Neustart</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            start: "Я хочу,",
+            options: ["чтобы ты пришёл.", "что ты придёшь.", "чтобы ты придёшь."],
+            correct: 0,
+            expl: "Wünsche erfordern „чтобы“ und die Vergangenheitsform."
+        },
+        {
+            start: "Это зависит",
+            options: ["моё настроение.", "от моего настроения.", "от моё настроение."],
+            correct: 1,
+            expl: "„зависит“ benötigt zwingend „от“ + Genitiv."
+        },
+        {
+            start: "Я люблю",
+            options: ["делать спорт.", "заниматься спортом.", "заниматься спорт."],
+            correct: 1,
+            expl: "Hobbys nutzen „заниматься“ + Instrumental."
+        },
+        {
+            start: "Он любит",
+            options: ["его жену.", "её жену.", "свою жену."],
+            correct: 2,
+            expl: "„свою“ bezieht sich auf die eigene Frau des Subjekts."
+        },
+        {
+            start: "Я не знаю,",
+            options: ["если он придёт.", "придёт ли он.", "ли он придёт."],
+            correct: 1,
+            expl: "Indirekte Fragen („ob“) werden mit „ли“ gebildet."
+        },
+        {
+            start: "На улице сегодня",
+            options: ["это тепло.", "тепло.", "очень это тепло."],
+            correct: 1,
+            expl: "Wetterbeschreibungen stehen im Russischen ohne „это“."
+        },
+        {
+            start: "Я хочу",
+            options: ["задать вопрос.", "спросить вопрос.", "спрашивать вопрос."],
+            correct: 0,
+            expl: "Man kann eine Frage „stellen“ (задать), aber nicht „fragen“."
+        },
+        {
+            start: "Я ем суп",
+            options: ["с ложкой.", "ложкой.", "ложка."],
+            correct: 1,
+            expl: "Instrumente werden ohne Präposition im Instrumental genutzt."
+        },
+        {
+            start: "Я купила много",
+            options: ["еды.", "едов.", "едыы."],
+            correct: 0,
+            expl: "„еда“ ist ein Singularetantum und hat keine Pluralform."
+        },
+        {
+            start: "Я прохожу",
+            options: ["делать курс.", "курс русского языка.", "заниматься курсом."],
+            correct: 1,
+            expl: "Kurse werden im Russischen „absolviert“ (проходить)."
+        }
+    ];
+
+    let currentQ = 0;
+    let locked = false;
+
+    function initLevel() {
+        locked = false;
+        const q = questions[currentQ];
+        document.getElementById('progress').textContent = `Satz ${currentQ + 1} von ${questions.length}`;
+        document.getElementById('sentence-start').textContent = q.start;
+        document.getElementById('feedback').textContent = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = "";
+
+        q.options.forEach((text, index) => {
+            const tile = document.createElement('div');
+            tile.className = 'option-tile';
+            tile.textContent = text;
+            tile.onclick = () => checkAnswer(index, tile);
+            container.appendChild(tile);
+        });
+    }
+
+    function checkAnswer(index, tile) {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const feedback = document.getElementById('feedback');
+
+        if (index === q.correct) {
+            tile.classList.add('selected-correct');
+            feedback.innerHTML = `<span style="color:var(--success-color)">Richtig!</span><br>${q.expl}`;
+        } else {
+            tile.classList.add('selected-wrong');
+            highlightCorrect();
+            feedback.innerHTML = `<span style="color:var(--error-color)">Leider falsch.</span><br>${q.expl}`;
+        }
+        showNextControls();
+    }
+
+    function highlightCorrect() {
+        const tiles = document.querySelectorAll('.option-tile');
+        const q = questions[currentQ];
+        tiles.forEach((t, i) => {
+            if (i === q.correct) t.classList.add('selected-correct');
+        });
+    }
+
+    function showSolution() {
+        if (locked) return;
+        locked = true;
+        const q = questions[currentQ];
+        const tiles = document.querySelectorAll('.option-tile');
+        tiles[q.correct].classList.add('is-solution');
+        document.getElementById('feedback').innerHTML = `<span style="color:var(--warning-color)">Lösung:</span><br>${q.expl}`;
+        showNextControls();
+    }
+
+    function showNextControls() {
+        document.getElementById('sol-btn').style.display = "none";
+        document.getElementById('next-btn').style.display = "inline-block";
+        if (currentQ === questions.length - 1) {
+            document.getElementById('next-btn').textContent = "Ergebnis anzeigen";
+        }
+    }
+
+    function nextLevel() {
+        if (currentQ < questions.length - 1) {
+            currentQ++;
+            initLevel();
+        } else {
+            showFinalScreen();
+        }
+    }
+
+    function showFinalScreen() {
+        document.getElementById('quiz-container').innerHTML = `
+            <h2>Hervorragend!</h2>
+            <p>Du hast alle 10 Sätze korrekt vervollständigt.</p>
+            <p>Du beherrschst nun die wichtigsten Kollokationen und Strukturen.</p>
+            <button class="action-btn restart-btn" onclick="location.reload()">Neustart</button>
+        `;
+    }
+
+    function restartGame() {
+        if(confirm("Möchtest du die Übung neu starten?")) {
+            currentQ = 0;
+            initLevel();
+        }
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
